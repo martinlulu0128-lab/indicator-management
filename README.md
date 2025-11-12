@@ -51,3 +51,22 @@ If this is your first deployment, you may need to:
 1. Go to your repository's Settings > Pages
 2. Set the source to "GitHub Actions"
 3. Wait for the GitHub Actions workflow to complete
+
+#### Troubleshooting 404 Errors
+
+If you encounter a 404 error when accessing the deployed application, please check the following:
+
+1. Ensure the GitHub Actions workflow has completed successfully:
+   - Go to your repository's "Actions" tab
+   - Check that the "Deploy to GitHub Pages" workflow has completed without errors
+
+2. Verify GitHub Pages settings:
+   - Go to your repository's Settings > Pages
+   - Ensure the source is set to "GitHub Actions"
+
+3. Check the base path configuration:
+   - The `vite.config.ts` file should have `base: '/indicator-management/'` 
+   - This should match your repository name
+
+4. Wait a few minutes:
+   - GitHub Pages may take a few minutes to propagate changes after a successful deployment
