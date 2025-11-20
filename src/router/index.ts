@@ -25,15 +25,15 @@ const router = createRouter({
       name: 'indicator-management',
       component: () => import('../views/IndicatorManagement.vue'),
       meta: {
-        title: '指标明细表管理'
+        title: '指标事实表管理'
       }
     },
     {
-      path: '/indicator-configuration',
-      name: 'indicator-configuration',
-      component: () => import('../views/IndicatorConfiguration.vue'),
+      path: '/indicator-list',
+      name: 'indicator-list',
+      component: () => import('../views/IndicatorList.vue'),
       meta: {
-        title: '指标配置'
+        title: '指标清单'
       }
     },
     {
@@ -62,6 +62,30 @@ const router = createRouter({
     component: () => import('../views/TestDefaultFields.vue'),
     meta: { title: '测试默认字段' }
   },
+  {
+    path: '/test-edit-function',
+    name: 'test-edit-function',
+    component: () => import('../views/TestEditFunction.vue'),
+    meta: { title: '测试编辑功能' }
+  },
+  {
+        path: '/test-filter-function',
+        name: 'TestFilterFunction',
+        component: () => import('../views/TestFilterFunction.vue'),
+        meta: { title: '测试Filter函数' }
+      },
+      {
+        path: '/test-filter-simple',
+        name: 'TestFilterSimple',
+        component: () => import('../views/TestFilterSimple.vue'),
+        meta: { title: '简单Filter函数测试' }
+      },
+      {
+        path: '/test-function-insert',
+        name: 'TestFunctionInsert',
+        component: () => import('../views/TestFunctionInsert.vue'),
+        meta: { title: '测试添加函数功能' }
+      },
     
     
     {

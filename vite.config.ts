@@ -6,7 +6,7 @@ import vue from '@vitejs/plugin-vue'
 // https://vitejs.dev/config/
 export default defineConfig({
   // 将此替换为您的GitHub仓库名称
-  base: '/indicator-management/',
+  base: process.env.NODE_ENV === 'production' ? '/indicator-management/' : '/',
   plugins: [
     vue(),
   ],

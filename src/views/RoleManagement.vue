@@ -241,7 +241,7 @@ const permissions = ref([
     children: [
       {
         id: 11,
-        label: '指标明细表管理',
+        label: '指标事实表管理',
         children: [
           { id: 111, label: '查看' },
           { id: 112, label: '新增' },
@@ -251,7 +251,7 @@ const permissions = ref([
       },
       {
         id: 12,
-        label: '指标配置',
+        label: '指标清单',
         children: [
           { id: 121, label: '查看' },
           { id: 122, label: '新增' },

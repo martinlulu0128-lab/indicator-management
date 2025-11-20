@@ -1,13 +1,13 @@
 // 指标管理相关的API接口模拟
 
-// 获取核心主题表
+// 获取核心主题表（限定为事实表）
 export function getCoreTables() {
   return Promise.resolve([
-    { id: 1, name: 'sales_detail', description: '销售明细表' },
-    { id: 2, name: 'user_behavior', description: '用户行为表' },
-    { id: 3, name: 'product_info', description: '产品信息表' },
-    { id: 4, name: 'order_summary', description: '订单汇总表' },
-    { id: 5, name: 'customer_profile', description: '客户画像表' }
+    { id: 1, name: 'sales_detail', description: '销售明细表', type: 'fact' },
+    { id: 4, name: 'order_summary', description: '订单汇总表', type: 'fact' },
+    { id: 6, name: 'revenue_fact', description: '收入事实表', type: 'fact' },
+    { id: 7, name: 'inventory_fact', description: '库存事实表', type: 'fact' },
+    { id: 8, name: 'customer_fact', description: '客户事实表', type: 'fact' }
   ]);
 }
 
