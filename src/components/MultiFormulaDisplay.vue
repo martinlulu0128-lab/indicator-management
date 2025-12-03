@@ -124,7 +124,7 @@
           <textarea
             ref="formulaTextarea"
             v-model="editingFormula"
-            placeholder="请输入公式，例如: [销售明细表.销售金额] + [销售明细表.折扣金额]"
+            placeholder="请输入公式，例如: ${销售明细表.销售金额} + ${销售明细表.折扣金额}"
             class="formula-textarea"
             @focus="setCurrentFocusIndex"
             @click="handleFormulaClick"
@@ -508,67 +508,67 @@ const currentFunctionHelp = computed(() => {
           name: 'SUM',
           description: '计算一组数值的总和',
           usage: 'SUM(数值1, 数值2, ...)',
-          example: 'SUM([销售明细表.销售金额], [销售明细表.折扣金额])'
+          example: 'SUM(${销售明细表.销售金额}, ${销售明细表.折扣金额})'
         },
         'AVG': {
           name: 'AVG',
           description: '计算一组数值的平均值',
           usage: 'AVG(数值1, 数值2, ...)',
-          example: 'AVG([销售明细表.销售金额], [销售明细表.订单数量])'
+          example: 'AVG(${销售明细表.销售金额}, ${销售明细表.订单数量})'
         },
         'COUNT': {
           name: 'COUNT',
           description: '计算数值的个数',
           usage: 'COUNT(数值1, 数值2, ...)',
-          example: 'COUNT([销售明细表.订单ID])'
+          example: 'COUNT(${销售明细表.订单ID})'
         },
         'MAX': {
           name: 'MAX',
           description: '返回一组数值中的最大值',
           usage: 'MAX(数值1, 数值2, ...)',
-          example: 'MAX([销售明细表.销售金额])'
+          example: 'MAX(${销售明细表.销售金额})'
         },
         'MIN': {
           name: 'MIN',
           description: '返回一组数值中的最小值',
           usage: 'MIN(数值1, 数值2, ...)',
-          example: 'MIN([销售明细表.销售金额])'
+          example: 'MIN(${销售明细表.销售金额})'
         },
         'IF': {
           name: 'IF',
           description: '条件判断函数，根据条件返回不同的值',
           usage: 'IF(条件, 值1, 值2)',
-          example: 'IF([销售明细表.销售金额] >= 1000, "高价值", "普通价值")'
+          example: 'IF(${销售明细表.销售金额} >= 1000, "高价值", "普通价值")'
         },
         'ROUND': {
           name: 'ROUND',
           description: '将数值四舍五入到指定的小数位数',
           usage: 'ROUND(数值, 小数位数)',
-          example: 'ROUND([销售明细表.销售金额], 2)'
+          example: 'ROUND(${销售明细表.销售金额}, 2)'
         },
         'ABS': {
           name: 'ABS',
           description: '返回数值的绝对值',
           usage: 'ABS(数值)',
-          example: 'ABS([销售明细表.折扣金额])'
+          example: 'ABS(${销售明细表.折扣金额})'
         },
         'SQRT': {
           name: 'SQRT',
           description: '返回数值的平方根',
           usage: 'SQRT(数值)',
-          example: 'SQRT([销售明细表.销售金额])'
+          example: 'SQRT(${销售明细表.销售金额})'
         },
         'POWER': {
           name: 'POWER',
           description: '返回数值的指定次幂',
           usage: 'POWER(底数, 指数)',
-          example: 'POWER([销售明细表.销售金额], 2)'
+          example: 'POWER(${销售明细表.销售金额}, 2)'
         },
         'WHERE': {
           name: 'WHERE',
           description: '添加过滤条件，筛选满足条件的数据',
-          usage: 'WHERE([表名.字段名] 运算符 值)',
-          example: 'WHERE([销售明细表.销售金额] >= 1000)'
+          usage: 'WHERE(${表名.字段名} 运算符 值)',
+          example: 'WHERE(${销售明细表.销售金额} >= 1000)'
         }
       }
       
@@ -794,7 +794,7 @@ const insertField = (field: any) => {
     }
   }
   
-  const fieldName = `[${selectedTable.value.description}.${field.name}]`
+  const fieldName = `\${${selectedTable.value.description}.${field.name}}`
   const cursorPosition = formulaTextarea.value.selectionStart
   
   // 在光标位置插入字段名

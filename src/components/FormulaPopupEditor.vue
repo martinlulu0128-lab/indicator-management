@@ -106,7 +106,7 @@
             </div>
             <textarea
               v-model="formulaList[index]"
-              placeholder="请输入公式，例如: [销售明细表.销售金额] + [销售明细表.折扣金额]"
+              placeholder="请输入公式，例如: ${销售明细表.销售金额} + ${销售明细表.折扣金额}"
               class="formula-textarea"
               @focus="currentFocusIndex = index"
             ></textarea>
@@ -305,67 +305,67 @@ const currentFunctionHelp = computed(() => {
       name: 'SUM',
       description: '计算一组数值的总和',
       usage: 'SUM(数值1, 数值2, ...)',
-      example: 'SUM([销售明细表.销售金额], [销售明细表.折扣金额])'
+      example: 'SUM(${销售明细表.销售金额}, ${销售明细表.折扣金额})'
     },
     'AVG': {
       name: 'AVG',
       description: '计算一组数值的平均值',
       usage: 'AVG(数值1, 数值2, ...)',
-      example: 'AVG([成绩表.数学成绩], [成绩表.英语成绩])'
+      example: 'AVG(${成绩表.数学成绩}, ${成绩表.英语成绩})'
     },
     'COUNT': {
       name: 'COUNT',
       description: '计算数值的个数',
       usage: 'COUNT(数值1, 数值2, ...)',
-      example: 'COUNT([用户表.用户ID])'
+      example: 'COUNT(${用户表.用户ID})'
     },
     'MAX': {
       name: 'MAX',
       description: '返回一组数值中的最大值',
       usage: 'MAX(数值1, 数值2, ...)',
-      example: 'MAX([成绩表.数学成绩])'
+      example: 'MAX(${成绩表.数学成绩})'
     },
     'MIN': {
       name: 'MIN',
       description: '返回一组数值中的最小值',
       usage: 'MIN(数值1, 数值2, ...)',
-      example: 'MIN([价格表.商品价格])'
+      example: 'MIN(${价格表.商品价格})'
     },
     'IF': {
       name: 'IF',
       description: '条件判断函数，根据条件返回不同的值',
       usage: 'IF(条件, 值1, 值2)',
-      example: 'IF([成绩表.数学成绩] >= 60, "及格", "不及格")'
+      example: 'IF(${成绩表.数学成绩} >= 60, "及格", "不及格")'
     },
     'ROUND': {
       name: 'ROUND',
       description: '将数值四舍五入到指定的小数位数',
       usage: 'ROUND(数值, 小数位数)',
-      example: 'ROUND([价格表.商品价格], 2)'
+      example: 'ROUND(${价格表.商品价格}, 2)'
     },
     'ABS': {
       name: 'ABS',
       description: '返回数值的绝对值',
       usage: 'ABS(数值)',
-      example: 'ABS([温度表.温度差值])'
+      example: 'ABS(${温度表.温度差值})'
     },
     'SQRT': {
       name: 'SQRT',
       description: '返回数值的平方根',
       usage: 'SQRT(数值)',
-      example: 'SQRT([几何表.面积])'
+      example: 'SQRT(${几何表.面积})'
     },
     'POWER': {
       name: 'POWER',
       description: '返回数值的指定次幂',
       usage: 'POWER(底数, 指数)',
-      example: 'POWER([数据表.基数], 2)'
+      example: 'POWER(${数据表.基数}, 2)'
     },
     'WHERE': {
       name: 'WHERE',
       description: '添加过滤条件，筛选满足条件的数据',
-      usage: 'WHERE([表名.字段名] 运算符 值)',
-      example: 'WHERE([用户表.年龄] >= 18)'
+      usage: 'WHERE(${表名.字段名} 运算符 值)',
+      example: 'WHERE(${用户表.年龄} >= 18)'
     }
   }
   
@@ -440,7 +440,7 @@ const handleTableSelect = (table: any) => {
 const insertField = (field: any) => {
   if (!selectedTable.value) return
   
-  const fieldName = `[${selectedTable.value.description}.${field.name}]`
+  const fieldName = `\${${selectedTable.value.description}.${field.name}}`
   
   // 在当前焦点公式中插入字段名
   const currentFormula = formulaList.value[currentFocusIndex.value] || ''

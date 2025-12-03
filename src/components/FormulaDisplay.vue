@@ -73,7 +73,7 @@
           <textarea
             ref="formulaTextarea"
             v-model="editingFormula"
-            placeholder="请输入公式，例如: [销售明细表.销售金额] + [销售明细表.折扣金额]"
+            placeholder="请输入公式，例如: ${销售明细表.销售金额} + ${销售明细表.折扣金额}"
             class="formula-textarea"
             @focus="setCurrentFocusIndex"
           ></textarea>
@@ -219,7 +219,7 @@ const handleTableSelect = (table: any) => {
 const insertField = (field: any) => {
   if (!formulaTextarea.value || !selectedTable.value) return
   
-  const fieldName = `[${selectedTable.value.description}.${field.name}]`
+  const fieldName = `\${${selectedTable.value.description}.${field.name}}`
   const cursorPosition = formulaTextarea.value.selectionStart
   
   // 在光标位置插入字段名

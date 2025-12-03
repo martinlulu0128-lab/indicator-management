@@ -236,25 +236,25 @@ const formulaPreview = computed(() => {
     let formula = ''
     switch (expr.operator) {
       case 'COUNT':
-        formula = `COUNT([${table.description}.${field.name}])`
+        formula = `COUNT(\${${table.description}.${field.name}})`
         break
       case 'COUNT_DISTINCT':
-        formula = `COUNT(DISTINCT [${table.description}.${field.name}])`
+        formula = `COUNT(DISTINCT \${${table.description}.${field.name}})`
         break
       case 'SUM':
-        formula = `SUM([${table.description}.${field.name}])`
+        formula = `SUM(\${${table.description}.${field.name}})`
         break
       case 'AVG':
-        formula = `AVG([${table.description}.${field.name}])`
+        formula = `AVG(\${${table.description}.${field.name}})`
         break
       case 'MAX':
-        formula = `MAX([${table.description}.${field.name}])`
+        formula = `MAX(\${${table.description}.${field.name}})`
         break
       case 'MIN':
-        formula = `MIN([${table.description}.${field.name}])`
+        formula = `MIN(\${${table.description}.${field.name}})`
         break
       default:
-        formula = `[${table.description}.${field.name}]`
+        formula = `\${${table.description}.${field.name}}`
     }
     
     // 添加过滤条件
@@ -266,9 +266,9 @@ const formulaPreview = computed(() => {
           if (!filterField) return ''
           
           if (f.operator === 'LIKE') {
-            return `WHERE([${table.description}.${filterField.name}]=LIKE '%${f.value}%')`
+            return `WHERE(\${${table.description}.${filterField.name}}=LIKE '%${f.value}%')`
           }
-          return `WHERE([${table.description}.${filterField.name}]${f.operator}'${f.value}')`
+          return `WHERE(\${${table.description}.${filterField.name}}${f.operator}'${f.value}')`
         })
         .filter(condition => condition !== '')
       

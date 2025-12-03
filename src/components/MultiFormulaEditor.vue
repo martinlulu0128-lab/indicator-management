@@ -19,7 +19,7 @@
         </div>
         <el-input
           v-model="formulaList[index]"
-          placeholder="请输入公式，例如: [销售明细表.销售金额] + [销售明细表.折扣金额]"
+          placeholder="请输入公式，例如: ${销售明细表.销售金额} + ${销售明细表.折扣金额}"
           type="textarea"
           :rows="3"
           class="formula-input"

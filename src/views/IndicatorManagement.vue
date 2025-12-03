@@ -15,6 +15,10 @@
                 <el-icon><Search /></el-icon>
               </template>
             </el-input>
+            <CascadeSortMenu 
+  :current-sort="getCurrentSortCommands()" 
+  @sort-change="handleSortCommand" 
+/>
             <el-button 
               type="primary" 
               @click="openAddFactTableDialog"
@@ -43,17 +47,29 @@
                 <div class="table-description">{{ table.description }}</div>
               </div>
               <div class="spacer"></div>
-              <el-tag 
-                v-if="!table.hasIndicators" 
-                class="no-indicators-tag" 
-                size="small" 
-                type="info"
-              >
-                无指标
-              </el-tag>
-              <el-tag v-else-if="table.viewType" class="view-type-tag" size="small">
-                {{ table.viewType }}
-              </el-tag>
+              <div class="table-actions">
+                <el-button 
+                  type="danger" 
+                  size="small" 
+                  :icon="Delete" 
+                  link
+                  @click="handleDeleteTable(table, $event)"
+                  class="delete-table-btn"
+                >
+                  删除
+                </el-button>
+                <el-tag 
+                  v-if="!table.hasIndicators" 
+                  class="no-indicators-tag" 
+                  size="small" 
+                  type="info"
+                >
+                  无指标
+                </el-tag>
+                <el-tag v-else-if="table.viewType" class="view-type-tag" size="small">
+                  {{ table.viewType }}
+                </el-tag>
+              </div>
             </div>
           </div>
         </div>
@@ -105,6 +121,7 @@
                   <div class="filter-right">
                     <div class="button-group">
                       <el-button type="primary" @click="createNewField">创建衍生指标</el-button>
+                      <el-button type="success" @click="initializeFieldTypes">初始化</el-button>
                     </div>
                   </div>
                 </div>
@@ -120,20 +137,30 @@
                       <el-tag 
                         v-if="scope.row.type"
                         :type="scope.row.type === 'native_indicator' ? 'success' : 
-                               scope.row.type === 'dimension' ? 'primary' : 'info'"
+                               scope.row.type === 'dimension' ? 'primary' : 
+                               scope.row.type === 'derived_indicator' ? 'warning' : 'info'"
                       >
                         {{ 
                           scope.row.type === 'native_indicator' ? '原生指标' :
-                          scope.row.type === 'dimension' ? '维度' : '未设置'
+                          scope.row.type === 'dimension' ? '维度' : 
+                          scope.row.type === 'derived_indicator' ? '衍生指标' : '未设置'
                         }}
                       </el-tag>
                       <span v-else class="empty-type">未设置</span>
                     </template>
                   </el-table-column>
                   <el-table-column prop="description" label="描述" />
-                  <el-table-column label="操作" width="120" fixed="right">
+                  <el-table-column label="操作" width="180" fixed="right">
                     <template #default="scope">
                       <el-button size="small" @click="openEditDialog(scope.row)">编辑</el-button>
+                      <el-button 
+                        v-if="scope.row.type === 'derived_indicator'" 
+                        size="small" 
+                        type="danger" 
+                        @click="handleDeleteField(scope.row, $event)"
+                      >
+                        删除
+                      </el-button>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -318,14 +345,24 @@
               <el-input v-model="currentField.fieldName" :disabled="isEditing" />
             </el-form-item>
             <el-form-item label="列类型" prop="type">
-              <el-select v-model="currentField.type" placeholder="请选择" @change="handleFieldTypeChange" clearable :disabled="currentField.type === 'derived_indicator'">
-                <el-option label="不选择" value="" />
-                <el-option label="原生指标" value="native_indicator" />
-                <el-option label="维度" value="dimension" />
+              <!-- 如果是编辑模式且字段类型为衍生指标，则禁用选择器并显示当前类型 -->
+              <el-select v-if="isEditing && currentField.type === 'derived_indicator'" v-model="currentField.type" disabled>
+                <el-option label="衍生指标" value="derived_indicator" />
               </el-select>
-              <div v-if="currentField.type === 'derived_indicator'" style="color: #909399; font-size: 12px; margin-top: 5px;">
-                衍生指标类型只能通过"创建衍生指标"功能设置
-              </div>
+              <!-- 如果是新建模式且标题为"创建衍生指标"，则固定为衍生指标 -->
+              <el-select v-else-if="!isEditing && editDialogTitle === '创建衍生指标'" v-model="currentField.type" disabled>
+                <el-option label="衍生指标" value="derived_indicator" />
+              </el-select>
+              <!-- 否则根据是否为衍生指标显示不同的选项 -->
+              <el-select v-else v-model="currentField.type" placeholder="请选择" @change="handleFieldTypeChange">
+                <!-- 非衍生字段或新建模式下，显示所有选项 -->
+                <template v-if="!isEditing || currentField.type !== 'derived_indicator'">
+                  <el-option label="维度" value="dimension" />
+                  <el-option label="原生指标" value="native_indicator" />
+                  <!-- 只有在新建模式下才显示衍生指标选项 -->
+                  <el-option v-if="!isEditing" label="衍生指标" value="derived_indicator" />
+                </template>
+              </el-select>
             </el-form-item>
             
             <el-form-item v-if="currentField.type === 'derived_indicator'" label="多公式管理">
@@ -512,20 +549,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Plus, CirclePlus } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Search, Plus, CirclePlus, Delete, Filter } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import SimpleIndicatorEditDialog from '@/components/SimpleIndicatorEditDialog.vue'
 import IndicatorEditDialog from '@/components/IndicatorEditDialog.vue'
 import FormulaPopupEditor from '@/components/FormulaPopupEditor.vue';
 import MultiFormulaDisplay from '@/components/MultiFormulaDisplay.vue';
+import CascadeSortMenu from '@/components/CascadeSortMenu.vue';
 
 // 获取路由实例
 const router = useRouter()
 
 // 搜索关键词
 const searchKeyword = ref('')
+
+// 排序相关状态
+const sortConfig = ref({
+  fields: [
+    { field: 'hasIndicators', order: 'asc' }, // 默认按是否有指标正序（无指标在下方）
+    { field: 'name', order: 'asc' }, // 第二排序条件按表名正序（A在上方）
+    { field: 'createTime', order: 'desc' } // 第三排序条件按添加时间倒序（近期添加的在前）
+  ]
+})
 
 // 表清单数据 - 根据字段信息动态判断是否有指标
 const tableList = ref([
@@ -563,17 +610,24 @@ const tableList = ref([
 
 // 动态更新表是否有指标的状态
 const updateTableIndicatorsStatus = () => {
-  tableList.value.forEach(table => {
+  // 创建一个新的数组，避免直接修改响应式对象
+  const updatedTableList = tableList.value.map(table => {
     const tableFields = fieldData.value[table.name] || []
     // 判断表中是否有指标字段（原生指标或衍生指标）
     const hasIndicators = tableFields.some(field => 
       field.type === 'native_indicator' || field.type === 'derived_indicator'
     )
-    table.hasIndicators = hasIndicators
+    return {
+      ...table,
+      hasIndicators
+    }
   })
+  
+  // 替换整个数组，避免响应式循环
+  tableList.value = updatedTableList
 }
 
-// 过滤后的表清单 - 按是否有指标分类排序
+// 过滤后的表清单 - 支持多条件排序
 const filteredTableList = computed(() => {
   let filteredTables = tableList.value
   
@@ -585,10 +639,49 @@ const filteredTableList = computed(() => {
     )
   }
   
-  // 按是否有指标排序：有指标的表在前，没有指标的表在后
+  // 根据多条件排序配置进行排序
   return filteredTables.sort((a, b) => {
-    if (a.hasIndicators && !b.hasIndicators) return -1
-    if (!a.hasIndicators && b.hasIndicators) return 1
+    // 首先检查是否是新添加的表，新添加的表始终排在前面
+    if (a.isNewlyAdded && !b.isNewlyAdded) return -1
+    if (!a.isNewlyAdded && b.isNewlyAdded) return 1
+    
+    // 如果都是新添加的表或都不是新添加的表，则按照原有的排序规则
+    // 遍历所有排序条件
+    for (const sortField of sortConfig.value.fields) {
+      let result = 0
+      
+      switch (sortField.field) {
+        case 'hasIndicators':
+          // 按是否有指标排序
+          if (a.hasIndicators && !b.hasIndicators) result = -1
+          else if (!a.hasIndicators && b.hasIndicators) result = 1
+          else result = 0
+          break
+          
+        case 'name':
+          // 按表名首字母排序
+          result = a.name.localeCompare(b.name)
+          break
+          
+        case 'createTime':
+          // 按添加时间排序（模拟数据，使用id作为创建时间顺序）
+          result = a.id - b.id
+          break
+          
+        default:
+          result = 0
+      }
+      
+      // 根据排序方向调整结果
+      result = sortField.order === 'desc' ? -result : result
+      
+      // 如果当前排序条件有差异，返回结果；否则继续下一个排序条件
+      if (result !== 0) {
+        return result
+      }
+    }
+    
+    // 所有排序条件都相同，保持原顺序
     return 0
   })
 })
@@ -623,15 +716,176 @@ const handleTableSelect = (row: any) => {
   }
 }
 
+// 切换排序方式 - 支持多条件排序
+const handleSortChange = (field: string) => {
+  const existingFieldIndex = sortConfig.value.fields.findIndex(f => f.field === field)
+  
+  if (existingFieldIndex !== -1) {
+    // 如果字段已存在，切换排序方向
+    const existingField = sortConfig.value.fields[existingFieldIndex]
+    existingField.order = existingField.order === 'asc' ? 'desc' : 'asc'
+    
+    // 如果切换后是正序，且不是第一个排序条件，则将其移到第一个位置
+    if (existingField.order === 'asc' && existingFieldIndex > 0) {
+      const [movedField] = sortConfig.value.fields.splice(existingFieldIndex, 1)
+      sortConfig.value.fields.unshift(movedField)
+    }
+  } else {
+    // 如果字段不存在，添加新的排序条件到最前面
+    sortConfig.value.fields.unshift({
+      field: field,
+      order: 'desc' // 默认倒序
+    })
+    
+    // 限制最多3个排序条件
+    if (sortConfig.value.fields.length > 3) {
+      sortConfig.value.fields.pop()
+    }
+  }
+}
+
+// 处理下拉菜单排序命令
+const handleSortCommand = (command: string) => {
+  if (command === 'clear') {
+    // 清除所有排序条件
+    sortConfig.value.fields = []
+  } else if (command.endsWith('-clear')) {
+    // 清除单个字段的排序
+    const field = command.replace('-clear', '')
+    sortConfig.value.fields = sortConfig.value.fields.filter(f => f.field !== field)
+  } else if (command.includes('-')) {
+    // 处理级联菜单命令格式：字段名-排序方向
+    const [field, order] = command.split('-')
+    
+    if (order === 'clear') {
+      // 清除单个字段的排序
+      sortConfig.value.fields = sortConfig.value.fields.filter(f => f.field !== field)
+    } else {
+      // 设置指定字段的排序方向
+      const existingIndex = sortConfig.value.fields.findIndex(f => f.field === field)
+      
+      if (existingIndex >= 0) {
+        // 更新现有排序条件的方向
+        sortConfig.value.fields[existingIndex].order = order
+      } else {
+        // 添加新的排序条件到最前面
+        sortConfig.value.fields.unshift({ field, order })
+        
+        // 限制最多3个排序条件
+        if (sortConfig.value.fields.length > 3) {
+          sortConfig.value.fields.pop()
+        }
+      }
+    }
+  } else {
+    // 处理旧的简单命令格式
+    handleSortChange(command)
+  }
+}
+
+// 获取排序图标 - 支持多条件排序
+const getSortIcon = (field: string) => {
+  const fieldConfig = sortConfig.value.fields.find(f => f.field === field)
+  if (!fieldConfig) {
+    return ''
+  }
+  
+  // 只显示排序方向，不显示优先级数字
+  const direction = fieldConfig.order === 'asc' ? '▲' : '▼'
+  
+  return `<span class="sort-indicator"><span class="direction">${direction}</span></span>`
+}
+
+// 获取排序字段的当前排序方向
+const getSortOrder = (field: string) => {
+  const fieldConfig = sortConfig.value.fields.find(f => f.field === field)
+  return fieldConfig ? fieldConfig.order : ''
+}
+
+// 处理排序方向变化
+const handleSortOrderChange = (field: string, order: string) => {
+  if (!order) {
+    // 如果取消选择，从排序条件中移除
+    sortConfig.value.fields = sortConfig.value.fields.filter(f => f.field !== field)
+  } else {
+    // 查找是否已存在该字段的排序条件
+    const existingIndex = sortConfig.value.fields.findIndex(f => f.field === field)
+    
+    if (existingIndex >= 0) {
+      // 更新现有排序条件的方向
+      sortConfig.value.fields[existingIndex].order = order
+    } else {
+      // 添加新的排序条件到末尾
+      sortConfig.value.fields.push({ field, order })
+    }
+  }
+}
+
+// 获取当前排序命令数组，用于传递给CascadeSortMenu组件
+const getCurrentSortCommands = () => {
+  return sortConfig.value.fields.map(field => `${field.field}-${field.order}`)
+}
+
+// 删除表
+const handleDeleteTable = (table: any, event: Event) => {
+  // 阻止事件冒泡，避免触发表选择
+  event.stopPropagation()
+  
+  ElMessageBox.confirm(
+    `确定要删除事实表 "${table.description}" 吗？删除后无法恢复。`,
+    '删除确认',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    // 查找表在列表中的索引
+    const index = tableList.value.findIndex(item => item.id === table.id)
+    if (index !== -1) {
+      // 删除表
+      tableList.value.splice(index, 1)
+      
+      // 如果删除的是当前选中的表，清空选中状态
+      if (selectedTable.value && selectedTable.value.id === table.id) {
+        selectedTable.value = null
+        tableInfo.value = {
+          name: '',
+          displayName: '',
+          description: '',
+          createTime: '',
+          updateTime: '',
+          status: '',
+          dataSource: '',
+          updateFrequency: '',
+          owner: '',
+          lastUpdateTime: '',
+          viewType: 'logical',
+          syncSettings: {
+            syncType: 'scheduled',
+            schedule: '0 0 * * *',
+            lastSyncTime: '',
+            syncStatus: 'success'
+          }
+        }
+      }
+      
+      ElMessage.success(`事实表 "${table.description}" 删除成功`)
+    }
+  }).catch(() => {
+    // 用户取消删除
+  })
+}
+
 // 字段类型选项
 const fieldTypeOptions = ref([
+  { value: 'dimension', label: '维度' },
   { value: 'native_indicator', label: '原生指标' },
-  { value: 'derived_indicator', label: '衍生指标' },
-  { value: 'dimension', label: '维度' }
+  { value: 'derived_indicator', label: '衍生指标' }
 ])
 
-// 字段筛选
-const fieldFilter = ref(['native_indicator', 'derived_indicator', 'dimension', 'derived_dimension', ''])
+// 字段过滤 - 默认只显示非衍生类型
+const fieldFilter = ref(['dimension', 'native_indicator', 'derived_indicator'])
 
 // 字段数据 - 按表分类
 const fieldData = ref({
@@ -666,7 +920,7 @@ const fieldData = ref({
   customer_profile: [
     { id: 16, displayName: '客户ID', fieldName: 'customer_id', type: 'dimension', dataType: 'VARCHAR(32)', source: '客户系统', description: '唯一标识一个客户' },
     { id: 17, displayName: '客户姓名', fieldName: 'customer_name', type: 'dimension', dataType: 'VARCHAR(50)', source: '客户系统', description: '客户姓名' },
-    { id: 18, displayName: '客户等级', fieldName: 'customer_level', type: 'derived_dimension', dataType: 'VARCHAR(20)', source: '客户画像', description: '根据客户消费行为计算的等级' }
+    { id: 18, displayName: '客户等级', fieldName: 'customer_level', type: 'dimension', dataType: 'VARCHAR(20)', source: '客户画像', description: '根据客户消费行为计算的等级' }
   ]
 })
 
@@ -705,7 +959,7 @@ const fieldSummary = computed(() => {
   
   return {
     total: tableFields.length,
-    dimensions: tableFields.filter(field => field.type === 'dimension' || field.type === 'derived_dimension').length,
+    dimensions: tableFields.filter(field => field.type === 'dimension').length,
     nativeIndicators: tableFields.filter(field => field.type === 'native_indicator').length,
     derivedIndicators: tableFields.filter(field => field.type === 'derived_indicator').length
   }
@@ -921,48 +1175,250 @@ const openFieldEditDialog = (field: any) => {
   editDialogVisible.value = true
 }
 
+// 初始化字段类型
+const initializeFieldTypes = () => {
+  if (!selectedTable.value) {
+    ElMessage.warning('请先选择一个表')
+    return
+  }
+  
+  // 获取当前表的字段数据
+  const tableFields = fieldData.value[selectedTable.value.name]
+  if (!tableFields || tableFields.length === 0) {
+    ElMessage.warning('当前表没有字段数据')
+    return
+  }
+  
+  // 定义数据类型映射
+  const numericTypes = ['int', 'double', 'decimal', 'float', 'number', 'bigint', 'smallint', 'tinyint']
+  const stringTypes = ['string', 'varchar', 'char', 'text', 'nvarchar', 'nchar', 'ntext']
+  
+  // 遍历字段，根据数据类型设置列类型
+  let updatedCount = 0
+  tableFields.forEach((field: any) => {
+    // 跳过衍生指标
+    if (field.type === 'derived_indicator') {
+      return
+    }
+    
+    // 获取数据类型的小写形式
+    const dataTypeLower = field.dataType.toLowerCase()
+    
+    // 确定新的列类型
+    let newType = field.type
+    
+    // 检查是否为数值类型
+    if (numericTypes.some(type => dataTypeLower.includes(type))) {
+      newType = 'native_indicator'
+    }
+    // 检查是否为字符串类型
+    else if (stringTypes.some(type => dataTypeLower.includes(type))) {
+      newType = 'dimension'
+    }
+    
+    // 如果类型有变化，更新字段
+    if (field.type !== newType) {
+      field.type = newType
+      updatedCount++
+    }
+  })
+  
+  // 更新表状态
+  updateTableIndicatorsStatus()
+  
+  ElMessage.success(`成功初始化 ${updatedCount} 个字段类型`)
+}
+
+// 删除字段
+const handleDeleteField = (field: any, event: Event) => {
+  // 阻止事件冒泡
+  event?.stopPropagation()
+  
+  ElMessageBox.confirm(`确定要删除衍生指标"${field.displayName}"吗？`, '删除确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    // 从字段数据中删除
+    const tableFields = fieldData.value[selectedTable.value.name]
+    const fieldIndex = tableFields.findIndex(item => item.fieldName === field.fieldName)
+    
+    if (fieldIndex !== -1) {
+      tableFields.splice(fieldIndex, 1)
+      
+      // 从指标信息中删除
+      removeFieldFromIndicators(field)
+      
+      // 更新表状态
+      updateTableIndicatorsStatus()
+      
+      ElMessage.success(`衍生指标"${field.displayName}"删除成功`)
+    }
+  }).catch(() => {
+    // 用户取消删除
+  })
+}
+
 // 保存字段
 const saveField = () => {
   fieldForm.value.validate((valid: boolean) => {
     if (valid) {
-      if (isEditing.value) {
-        // 编辑逻辑 - 在实际应用中应该更新后端数据
-        let found = false
-        let oldField = null
+      // 如果是衍生指标，检查公式是否只引用了单个字段
+      if (currentField.value.type === 'derived_indicator' && currentField.value.formula) {
+        const referencedFields = extractFieldsFromFormula(currentField.value.formula)
         
-        // 遍历所有表的字段数据，查找要编辑的字段
-        for (const tableName in fieldData.value) {
-          const tableFields = fieldData.value[tableName]
-          const index = tableFields.findIndex(item => item.fieldName === currentField.value.fieldName)
-          if (index !== -1) {
-            oldField = tableFields[index]
-            const newField = { ...currentField.value }
-            
-            // 更新字段数据
-            tableFields[index] = newField
-            ElMessage.success('字段更新成功')
-            
-            // 同步指标信息：检查字段类型变化
-            syncIndicatorData(oldField, newField)
-            
-            // 更新表状态
-            updateTableIndicatorsStatus()
-            found = true
-            break
+        // 如果只引用了一个字段
+        if (referencedFields.length === 1) {
+          const { tableName, fieldName } = referencedFields[0]
+          const isNativeIndicator = isFieldNativeIndicator(tableName, fieldName)
+          
+          // 如果该字段已经是原生指标，不允许保存
+          if (isNativeIndicator) {
+            ElMessage.error(`字段"${fieldName}"已经是原生指标，不能创建只引用单个原生指标的衍生指标`)
+            return
           }
+          
+          // 如果该字段不是原生指标，提示用户是否将其设置为原生指标
+          ElMessageBox.confirm(
+            `检测到公式只引用了单个字段"${fieldName}"，该字段尚未设置为原生指标。是否将该字段设置为原生指标？`,
+            '提示',
+            {
+              confirmButtonText: '设置为原生指标',
+              cancelButtonText: '继续创建衍生指标',
+              type: 'warning'
+            }
+          ).then(() => {
+            // 用户选择设置为原生指标
+            setFieldAsNativeIndicator(tableName, fieldName)
+          }).catch(() => {
+            // 用户选择继续创建衍生指标，继续执行保存逻辑
+            continueSaveField()
+          })
+          return
         }
-        
-        if (!found) {
-          ElMessage.error('未找到要编辑的字段')
-        }
-      } else {
-        // 新增逻辑 - 在实际应用中应该发送到后端
-        // 新增字段需要知道属于哪个表，这里需要额外的逻辑来确定表
-        ElMessage.error('新增字段功能需要指定所属表，当前版本暂不支持')
       }
-      editDialogVisible.value = false
+      
+      // 继续执行保存逻辑
+      continueSaveField()
     }
   })
+}
+
+// 继续保存字段逻辑
+const continueSaveField = () => {
+  if (isEditing.value) {
+    // 编辑逻辑 - 在实际应用中应该更新后端数据
+    let found = false
+    let oldField = null
+    
+    // 遍历所有表的字段数据，查找要编辑的字段
+    for (const tableName in fieldData.value) {
+      const tableFields = fieldData.value[tableName]
+      const index = tableFields.findIndex(item => item.fieldName === currentField.value.fieldName)
+      if (index !== -1) {
+        oldField = tableFields[index]
+        const newField = { ...currentField.value }
+        
+        // 如果是编辑衍生指标，确保类型不能更改
+        if (oldField.type === 'derived_indicator') {
+          newField.type = 'derived_indicator'
+        }
+        
+        // 更新字段数据
+        tableFields[index] = newField
+        ElMessage.success('字段更新成功')
+        
+        // 同步指标信息：检查字段类型变化
+        syncIndicatorData(oldField, newField)
+        
+        // 更新表状态
+        updateTableIndicatorsStatus()
+        found = true
+        break
+      }
+    }
+    
+    if (!found) {
+      ElMessage.error('未找到要编辑的字段')
+    }
+  } else {
+    // 新增逻辑 - 创建字段
+    if (!selectedTable.value) {
+      ElMessage.error('请先选择一个事实表')
+      return
+    }
+    
+    // 检查字段名称是否已存在
+    const tableFields = fieldData.value[selectedTable.value.name]
+    const existingField = tableFields.find(item => item.fieldName === currentField.value.fieldName)
+    if (existingField) {
+      ElMessage.error('该字段名称已存在，请使用其他名称')
+      return
+    }
+    
+    // 添加新字段到当前选中表的字段列表中
+    tableFields.push({
+      ...currentField.value,
+      // 确保字段有必要的属性
+      tableName: selectedTable.value.name,
+      tableDescription: selectedTable.value.description
+    })
+    
+    // 如果是衍生指标，添加到指标信息中
+    if (currentField.value.type === 'derived_indicator') {
+      addFieldToIndicators(currentField.value)
+      ElMessage.success('衍生指标创建成功')
+    } else {
+      ElMessage.success('字段创建成功')
+    }
+    
+    // 更新表状态
+    updateTableIndicatorsStatus()
+  }
+  editDialogVisible.value = false
+}
+
+// 将字段设置为原生指标
+const setFieldAsNativeIndicator = (tableName: string, fieldName: string) => {
+  // 查找匹配的表名，支持部分匹配
+  let matchedTableName = null
+  for (const key in fieldData.value) {
+    if (key.includes(tableName) || tableName.includes(key)) {
+      matchedTableName = key
+      break
+    }
+  }
+  
+  if (!matchedTableName) {
+    ElMessage.error(`未找到表"${tableName}"`)
+    return
+  }
+  
+  const tableFields = fieldData.value[matchedTableName]
+  if (!tableFields) {
+    ElMessage.error(`未找到表"${matchedTableName}"`)
+    return
+  }
+  
+  const field = tableFields.find(f => f.fieldName === fieldName)
+  if (!field) {
+    ElMessage.error(`未找到字段"${fieldName}"`)
+    return
+  }
+  
+  // 更新字段类型为原生指标
+  field.type = 'native_indicator'
+  
+  // 添加到指标信息中
+  addFieldToIndicators(field)
+  
+  // 更新表状态
+  updateTableIndicatorsStatus()
+  
+  ElMessage.success(`字段"${fieldName}"已设置为原生指标`)
+  
+  // 关闭当前编辑对话框
+  editDialogVisible.value = false
 }
 
 // 同步指标数据
@@ -987,6 +1443,9 @@ const openAddFactTableDialog = async () => {
   console.log('按钮被点击了')
   addFactTableDialogVisible.value = true
   console.log('对话框可见性设置为:', addFactTableDialogVisible.value)
+  
+  // 使用nextTick确保DOM更新后再加载数据
+  await nextTick()
   await loadAvailableTables()
 }
 
@@ -1092,12 +1551,27 @@ const confirmAddFactTable = async () => {
     const tableNames = selectedTables.value.map(table => table.name).join(', ')
     ElMessage.success(`成功添加事实表: ${tableNames}`)
     
+    // 将新添加的表添加到表清单中
+    const maxId = tableList.value.length > 0 ? Math.max(...tableList.value.map(t => t.id)) : 0
+    const newTables = selectedTables.value.map((table, index) => ({
+      id: maxId + index + 1,
+      name: table.name,
+      description: table.description,
+      hasIndicators: false, // 新添加的表默认没有指标
+      isNewlyAdded: true // 标记为新添加的表
+    }))
+    
+    // 更新表清单，将新表添加到最前面
+    tableList.value = [...newTables, ...tableList.value]
+    
     // 关闭对话框并重置状态
     addFactTableDialogVisible.value = false
     resetFilterAndSelection()
     
     // 刷新事实表列表
-    // await loadFactTables()
+    await loadAvailableTables()
+    // 更新表清单中的指标状态
+    updateTableIndicatorsStatus()
   } catch (error) {
     ElMessage.error('添加事实表失败')
     console.error('添加事实表失败:', error)
@@ -1306,7 +1780,7 @@ const resetFieldForm = () => {
   Object.assign(currentField.value, {
     displayName: '',
     fieldName: '',
-    type: 'native_indicator',
+    type: '', // 默认不设置类型
     dataType: '',
     source: '',
     description: '',
@@ -1321,6 +1795,16 @@ const resetFieldForm = () => {
 
 // 处理字段类型变化
 const handleFieldTypeChange = (newType: string) => {
+  // 如果是编辑模式且原字段是衍生指标，不允许更改类型
+  if (isEditing.value && currentField.type === 'derived_indicator') {
+    ElMessage.warning('衍生指标类型不可更改')
+    // 恢复原类型
+    nextTick(() => {
+      currentField.value.type = 'derived_indicator'
+    })
+    return
+  }
+  
   // 当类型切换为衍生指标时，如果公式为空，设置默认公式
   if (newType === 'derived_indicator') {
     if (!currentField.value.formula) {
@@ -1396,6 +1880,46 @@ const extractFactTablesFromFormula = (content: string): string[] => {
   return factTables
 }
 
+// 提取公式中引用的字段
+const extractFieldsFromFormula = (content: string): Array<{tableName: string, fieldName: string}> => {
+  if (!content) return []
+  
+  // 正则表达式匹配 [表名.字段名] 格式
+  const fieldPattern = /\[([^\]]+)\.([^\]]+)\]/g
+  const matches = content.matchAll(fieldPattern)
+  
+  const fields: Array<{tableName: string, fieldName: string}> = []
+  for (const match of matches) {
+    const tableName = match[1]
+    const fieldName = match[2]
+    if (tableName && fieldName) {
+      fields.push({ tableName, fieldName })
+    }
+  }
+  
+  return fields
+}
+
+// 检查字段是否已设置为原生指标
+const isFieldNativeIndicator = (tableName: string, fieldName: string): boolean => {
+  // 查找匹配的表名，支持部分匹配
+  let matchedTableName = null
+  for (const key in fieldData.value) {
+    if (key.includes(tableName) || tableName.includes(key)) {
+      matchedTableName = key
+      break
+    }
+  }
+  
+  if (!matchedTableName) return false
+  
+  const tableFields = fieldData.value[matchedTableName]
+  if (!tableFields) return false
+  
+  const field = tableFields.find(f => f.fieldName === fieldName)
+  return field && field.type === 'native_indicator'
+}
+
 // 计算指标统计数据
 const indicatorSummary = computed(() => {
   const total = relatedIndicators.value.length
@@ -1463,7 +1987,9 @@ const formatFormulaContent = (content: string) => {
 }
 
 .table-list-aside {
-  width: 320px;
+  width: 30%;
+  min-width: 300px;
+  max-width: 420px;
   background-color: transparent;
   display: flex;
   flex-direction: column;
@@ -1577,8 +2103,119 @@ const formatFormulaContent = (content: string) => {
   flex: 1;
 }
 
+.filter-dropdown {
+  flex-shrink: 0;
+}
+
+.filter-btn {
+  padding: 8px 12px;
+  border: 1px solid #dcdfe6;
+  background-color: #ffffff;
+}
+
+.filter-btn:hover {
+  border-color: #c0c4cc;
+  background-color: #f5f7fa;
+}
+
 .add-fact-table-btn {
   white-space: nowrap;
+}
+
+/* 下拉菜单样式 */
+.el-dropdown-menu .el-dropdown-item {
+  padding: 8px 16px;
+}
+
+.el-dropdown-menu .el-dropdown-item span.active {
+  color: #409eff;
+  font-weight: 500;
+}
+
+/* 排序指示器样式 */
+.sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.priority {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background-color: #409eff;
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.direction {
+  color: #409eff;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+/* 过滤按钮上的排序数量显示 */
+.filter-btn .sort-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  background-color: #409eff;
+  color: white;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 6px;
+  padding: 0 4px;
+}
+
+/* 级联排序选择器样式 */
+.sort-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.sort-label {
+  font-size: 14px;
+  color: #606266;
+  flex-shrink: 0;
+}
+
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sort-controls .el-select {
+  margin: 0;
+}
+
+.sort-controls .el-select .el-input__inner {
+  font-size: 12px;
+  height: 24px;
+  line-height: 22px;
+}
+
+/* 下拉菜单中的选择器样式调整 */
+.el-dropdown-menu .el-dropdown-item {
+  padding: 8px 16px;
+}
+
+.el-dropdown-menu .el-dropdown-item:hover {
+  background-color: #f5f7fa;
 }
 
 /* 添加事实表对话框样式 */
@@ -1712,6 +2349,22 @@ const formatFormulaContent = (content: string) => {
 
 .spacer {
   flex: 1;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.delete-table-btn {
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+.delete-table-btn:hover {
+  opacity: 1;
 }
 
 .view-type-tag {
