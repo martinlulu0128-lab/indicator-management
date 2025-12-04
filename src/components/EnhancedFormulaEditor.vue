@@ -44,21 +44,84 @@
             </template>
           </el-dropdown>
           
-          <el-dropdown @command="handleFunctionSelect" trigger="click">
+          <el-dropdown trigger="click">
             <el-button size="small" type="success">
               <el-icon><DataAnalysis /></el-icon>
               插入函数
             </el-button>
             <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="SUM">SUM(字段) - 求和</el-dropdown-item>
-                <el-dropdown-item command="AVG">AVG(字段) - 平均值</el-dropdown-item>
-                <el-dropdown-item command="COUNT">COUNT(字段) - 计数</el-dropdown-item>
-                <el-dropdown-item command="MAX">MAX(字段) - 最大值</el-dropdown-item>
-                <el-dropdown-item command="MIN">MIN(字段) - 最小值</el-dropdown-item>
-                <el-dropdown-item command="DISTINCT">DISTINCT(字段) - 去重计数</el-dropdown-item>
-                <el-dropdown-item command="IF">IF(条件, 真值, 假值) - 条件判断</el-dropdown-item>
-                <el-dropdown-item command="FILTER">FILTER(字段, 条件) - 条件过滤</el-dropdown-item>
+              <el-dropdown-menu class="scrollable-dropdown">
+                <!-- 逻辑函数分组 -->
+                <div class="dropdown-group-header">
+                  <el-button 
+                    type="text" 
+                    size="small" 
+                    @click="toggleGroup('logical')"
+                    class="group-toggle-btn"
+                  >
+                    <el-icon v-if="expandedGroups.logical"><ArrowDown /></el-icon>
+                    <el-icon v-else><ArrowRight /></el-icon>
+                    逻辑函数
+                  </el-button>
+                </div>
+                <template v-if="expandedGroups.logical">
+                  <el-dropdown-item command="AND">AND(逻辑表达式1, [逻辑表达式2, ...]) - 逻辑与</el-dropdown-item>
+                  <el-dropdown-item command="CONTAIN">CONTAIN(查找范围, [要查找的值, ...]) - 判断查找范围是否包含要查找的内容</el-dropdown-item>
+                  <el-dropdown-item command="FALSE">FALSE() - 返回逻辑值 FALSE</el-dropdown-item>
+                  <el-dropdown-item command="IF">IF(判断条件, 为 TRUE 时的返回值, [为 FALSE 时的返回值]) - 条件判断</el-dropdown-item>
+                  <el-dropdown-item command="IFBLANK">IFBLANK(值, 空值情况的返回值) - 检查目标值是否为空</el-dropdown-item>
+                  <el-dropdown-item command="IFERROR">IFERROR(值, 错误情况的返回值) - 检查目标值是否错误</el-dropdown-item>
+                  <el-dropdown-item command="IFS">IFS(条件1, 值1, [条件2, ...], [值2, ...]) - 多条件判断</el-dropdown-item>
+                  <el-dropdown-item command="ISBLANK">ISBLANK(值) - 检查目标值是否为空值</el-dropdown-item>
+                  <el-dropdown-item command="ISERROR">ISERROR(值) - 检查某个值是否为错误值</el-dropdown-item>
+                  <el-dropdown-item command="ISNUMBER">ISNUMBER(值) - 检查目标值是否为数字</el-dropdown-item>
+                  <el-dropdown-item command="MAP">MAP(数据范围, 映射逻辑) - 将给定数据范围中的每个值映射到新值</el-dropdown-item>
+                  <el-dropdown-item command="NOT">NOT(逻辑函数) - 逻辑非</el-dropdown-item>
+                  <el-dropdown-item command="OR">OR(逻辑表达式1, [逻辑表达式2, ...]) - 逻辑或</el-dropdown-item>
+                  <el-dropdown-item command="RANK">RANK(值, 查找范围, [按升序]) - 返回一个值在指定数据集中的排名</el-dropdown-item>
+                  <el-dropdown-item command="RECORD_ID">RECORD_ID() - 获取多维表格记录的唯一 ID 编号</el-dropdown-item>
+                  <el-dropdown-item command="SWITCH">SWITCH(表达式, 表达式1, 表达式1的值, [表达式2或默认值, ...], [表达式2的值, ...]) - 开关函数</el-dropdown-item>
+                  <el-dropdown-item command="TRUE">TRUE() - 返回逻辑值 TRUE</el-dropdown-item>
+                  <el-dropdown-item command="CONTAINSALL">CONTAINSALL(查找范围,[要查找的值,...]) - 判断查找范围是否包含所有要查找的内容</el-dropdown-item>
+                  <el-dropdown-item command="CONTAINSONLY">CONTAINSONLY(查找范围,[要查找的值,...]) - 判断查找范围是否仅包含所有要查找的内容</el-dropdown-item>
+                  <el-dropdown-item command="ISNULL">ISNULL(值) - 检查目标值是否为空值</el-dropdown-item>
+                  <el-dropdown-item command="RANDOMBETWEEN">RANDOMBETWEEN(最小整数，最大整数，[是否持续更新]) - 生成指定范围内的随机整数</el-dropdown-item>
+                  <el-dropdown-item command="RANDOMITEM">RANDOMITEM(列表, [是否持续更新]) - 从列表中随机选择一个元素</el-dropdown-item>
+                </template>
+                
+                <!-- 日期函数分组 -->
+                <div class="dropdown-group-header">
+                  <el-button 
+                    type="text" 
+                    size="small" 
+                    @click="toggleGroup('date')"
+                    class="group-toggle-btn"
+                  >
+                    <el-icon v-if="expandedGroups.date"><ArrowDown /></el-icon>
+                    <el-icon v-else><ArrowRight /></el-icon>
+                    日期函数
+                  </el-button>
+                </div>
+                <template v-if="expandedGroups.date">
+                  <el-dropdown-item command="DATE">DATE(年, 月, 日) - 将代表年、月、日的数字转换为日期</el-dropdown-item>
+                  <el-dropdown-item command="DATEDIF">DATEDIF(起始日期, 结束日期, 单位) - 返回起始日期和结束日期之间的天数、月数或年数</el-dropdown-item>
+                  <el-dropdown-item command="DAY">DAY(日期值) - 以数字格式返回特定日期的日</el-dropdown-item>
+                  <el-dropdown-item command="DAYS">DAYS(结束日期, 起始日期) - 返回起始日期与结束日期之间的天数</el-dropdown-item>
+                  <el-dropdown-item command="EDATE">EDATE(开始日期, 月数) - 返回输入日期特定月数之前或者之后的日期</el-dropdown-item>
+                  <el-dropdown-item command="EOMONTH">EOMONTH(开始日期, 月数) - 返回与开始日期相隔数月的某个月份最后一天的日期</el-dropdown-item>
+                  <el-dropdown-item command="HOUR">HOUR(时间) - 以数字格式返回特定时间的小时部分</el-dropdown-item>
+                  <el-dropdown-item command="MINUTE">MINUTE(时间) - 以数字格式返回特定时间的分钟部分</el-dropdown-item>
+                  <el-dropdown-item command="MONTH">MONTH(日期值) - 以数字格式返回特定日期对应的月份</el-dropdown-item>
+                  <el-dropdown-item command="NETWORKDAYS">NETWORKDAYS(起始日期, 结束日期, [节假日]) - 返回起始日期和结束日期之间的净工作日天数</el-dropdown-item>
+                  <el-dropdown-item command="NOW">NOW() - 返回当前日期和时间</el-dropdown-item>
+                  <el-dropdown-item command="SECOND">SECOND(时间) - 以数字格式返回特定时间的秒钟部分</el-dropdown-item>
+                  <el-dropdown-item command="TODAY">TODAY() - 返回当天的日期</el-dropdown-item>
+                  <el-dropdown-item command="WEEKDAY">WEEKDAY(日期值, [类型]) - 返回目标日期在当周的第几天，结果以数字形式显示</el-dropdown-item>
+                  <el-dropdown-item command="WEEKNUM">WEEKNUM(日期, [类型]) - 返回目标日期在当前年份的第几周</el-dropdown-item>
+                  <el-dropdown-item command="WORKDAY">WORKDAY(起始日期, 天数, [节假日]) - 指定起始日期和所需要的工作日天数，返回结束日期</el-dropdown-item>
+                  <el-dropdown-item command="YEAR">YEAR(日期值) - 以数字格式返回给定日期所指定的年份</el-dropdown-item>
+                  <el-dropdown-item command="DURATION">DURATION(天数, [小时数], [分钟数], [秒数]) - 生成指定时长，给已有日期加上或减去该时长，可以计算出新的日期</el-dropdown-item>
+                </template>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -82,30 +145,131 @@
         <div class="function-help">
         <h4>函数帮助:</h4>
         <div class="help-content">
+          <h5>逻辑函数</h5>
           <div class="function-list">
             <div class="function-item">
-              <strong>SUM(字段)</strong> - 对指定字段求和
+              <strong>AND(逻辑表达式1, [逻辑表达式2, ...])</strong> - 逻辑与，当所有参数均为逻辑 TRUE 时，返回 TRUE；当参数中任何一个为逻辑 FALSE，返回 FALSE
             </div>
             <div class="function-item">
-              <strong>AVG(字段)</strong> - 计算指定字段的平均值
+              <strong>CONTAIN(查找范围, [要查找的值, ...])</strong> - 判断查找范围是否包含要查找的内容。注：本函数不支持文本包含匹配，如有需要请使用 CONTAINTEXT 函数
             </div>
             <div class="function-item">
-              <strong>COUNT(字段)</strong> - 统计指定字段的数量
+              <strong>FALSE()</strong> - 返回逻辑值 FALSE
             </div>
             <div class="function-item">
-              <strong>MAX(字段)</strong> - 获取指定字段的最大值
+              <strong>IF(判断条件, 为 TRUE 时的返回值, [为 FALSE 时的返回值])</strong> - 当判断条件为 TRUE 时返回一个值，为 FALSE 时返回另一个值
             </div>
             <div class="function-item">
-              <strong>MIN(字段)</strong> - 获取指定字段的最小值
+              <strong>IFBLANK(值, 空值情况的返回值)</strong> - 检查目标值是否为空，非空时返回该值本身，否则返回第二个参数的值
             </div>
             <div class="function-item">
-              <strong>DISTINCT(字段)</strong> - 去重统计指定字段
+              <strong>IFERROR(值, 错误情况的返回值)</strong> - 检查目标值是否错误，没有错误时返回该值本身，否则返回第二个参数的值
             </div>
             <div class="function-item">
-              <strong>IF(条件, 真值, 假值)</strong> - 条件判断函数，根据条件返回不同值
+              <strong>IFS(条件1, 值1, [条件2, ...], [值2, ...])</strong> - 判断是否满足一个或多个条件并返回第一个 TRUE 条件对应的结果
             </div>
             <div class="function-item">
-              <strong>FILTER(字段, 条件)</strong> - 条件过滤函数，根据条件过滤字段值
+              <strong>ISBLANK(值)</strong> - 检查目标值是否为空值，为空时结果为 true，否则为 false
+            </div>
+            <div class="function-item">
+              <strong>ISERROR(值)</strong> - 检查某个值是否为错误值
+            </div>
+            <div class="function-item">
+              <strong>ISNUMBER(值)</strong> - 检查目标值是否为数字，返回布尔值：如为数字，则返回 TRUE；如非数字，则返回 FALSE
+            </div>
+            <div class="function-item">
+              <strong>MAP(数据范围, 映射逻辑)</strong> - 将给定数据范围中的每个值映射到新值，即按照映射逻辑处理给定数据组中的每一个值，并返回由处理后元素组成的新数组
+            </div>
+            <div class="function-item">
+              <strong>NOT(逻辑函数)</strong> - 对其参数的逻辑求反
+            </div>
+            <div class="function-item">
+              <strong>OR(逻辑表达式1, [逻辑表达式2, ...])</strong> - 只要提供的参数中任何一个为逻辑真就返回 TRUE，如果提供的所有参数均为逻辑假则返回 FALSE
+            </div>
+            <div class="function-item">
+              <strong>RANK(值, 查找范围, [按升序])</strong> - 返回一个值在指定数据集中的排名
+            </div>
+            <div class="function-item">
+              <strong>RECORD_ID()</strong> - 获取多维表格记录的唯一 ID 编号
+            </div>
+            <div class="function-item">
+              <strong>SWITCH(表达式, 表达式1, 表达式1的值, [表达式2或默认值, ...], [表达式2的值, ...])</strong> - 通过与表达式进行比较，按命中条件返回相应的值
+            </div>
+            <div class="function-item">
+              <strong>TRUE()</strong> - 返回逻辑值 TRUE
+            </div>
+            <div class="function-item">
+              <strong>CONTAINSALL(查找范围,[要查找的值,...])</strong> - 判断查找范围是否包含所有要查找的内容
+            </div>
+            <div class="function-item">
+              <strong>CONTAINSONLY(查找范围,[要查找的值,...])</strong> - 判断查找范围是否仅包含所有要查找的内容
+            </div>
+            <div class="function-item">
+              <strong>ISNULL(值)</strong> - 检查目标值是否为空值，为空时结果为 true，否则为 false
+            </div>
+            <div class="function-item">
+              <strong>RANDOMBETWEEN(最小整数，最大整数，[是否持续更新])</strong> - 生成指定范围内的随机整数
+            </div>
+            <div class="function-item">
+              <strong>RANDOMITEM(列表, [是否持续更新])</strong> - 从列表中随机选择一个元素
+            </div>
+          </div>
+          
+          <h5>日期函数</h5>
+          <div class="function-list">
+            <div class="function-item">
+              <strong>DATE(年, 月, 日)</strong> - 将代表年、月、日的数字转换为日期
+            </div>
+            <div class="function-item">
+              <strong>DATEDIF(起始日期, 结束日期, 单位)</strong> - 返回起始日期和结束日期之间的天数、月数或年数
+            </div>
+            <div class="function-item">
+              <strong>DAY(日期值)</strong> - 以数字格式返回特定日期的日
+            </div>
+            <div class="function-item">
+              <strong>DAYS(结束日期, 起始日期)</strong> - 返回起始日期与结束日期之间的天数
+            </div>
+            <div class="function-item">
+              <strong>EDATE(开始日期, 月数)</strong> - 返回输入日期特定月数之前或者之后的日期
+            </div>
+            <div class="function-item">
+              <strong>EOMONTH(开始日期, 月数)</strong> - 返回与开始日期相隔数月的某个月份最后一天的日期
+            </div>
+            <div class="function-item">
+              <strong>HOUR(时间)</strong> - 以数字格式返回特定时间的小时部分
+            </div>
+            <div class="function-item">
+              <strong>MINUTE(时间)</strong> - 以数字格式返回特定时间的分钟部分
+            </div>
+            <div class="function-item">
+              <strong>MONTH(日期值)</strong> - 以数字格式返回特定日期对应的月份
+            </div>
+            <div class="function-item">
+              <strong>NETWORKDAYS(起始日期, 结束日期, [节假日])</strong> - 返回起始日期和结束日期之间的净工作日天数
+            </div>
+            <div class="function-item">
+              <strong>NOW()</strong> - 返回当前日期和时间
+            </div>
+            <div class="function-item">
+              <strong>SECOND(时间)</strong> - 以数字格式返回特定时间的秒钟部分
+            </div>
+            <div class="function-item">
+              <strong>TODAY()</strong> - 返回当天的日期
+            </div>
+            <div class="function-item">
+              <strong>WEEKDAY(日期值, [类型])</strong> - 返回目标日期在当周的第几天，结果以数字形式显示
+            </div>
+            <div class="function-item">
+              <strong>WEEKNUM(日期, [类型])</strong> - 返回目标日期在当前年份的第几周
+            </div>
+            <div class="function-item">
+              <strong>WORKDAY(起始日期, 天数, [节假日])</strong> - 指定起始日期和所需要的工作日天数，返回结束日期
+            </div>
+            <div class="function-item">
+              <strong>YEAR(日期值)</strong> - 以数字格式返回给定日期所指定的年份
+            </div>
+            <div class="function-item">
+              <strong>DURATION(天数, [小时数], [分钟数], [秒数])</strong> - 生成指定时长，给已有日期加上或减去该时长，可以计算出新的日期
             </div>
           </div>
         </div>
@@ -153,7 +317,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { Document, Operation, Delete, DataAnalysis } from '@element-plus/icons-vue'
+import { Document, Operation, Delete, DataAnalysis, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
 import { getCoreTables, getTableFields } from '@/api/indicator'
 
 // 弹窗可见性
@@ -188,6 +352,17 @@ const fieldDialogVisible = ref(false)
 
 // 公式输入框引用
 const formulaTextarea = ref<HTMLTextAreaElement | null>(null)
+
+// 分组展开状态
+const expandedGroups = ref({
+  logical: true,
+  date: true
+})
+
+// 切换分组展开/折叠
+const toggleGroup = (group: string) => {
+  expandedGroups.value[group as keyof typeof expandedGroups.value] = !expandedGroups.value[group as keyof typeof expandedGroups.value]
+}
 
 // 获取字段类型标签类型
 const getFieldTypeTagType = (type: string) => {
@@ -460,5 +635,42 @@ defineExpose({
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* 滚动下拉菜单样式 */
+.scrollable-dropdown {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 分组标题样式 */
+.dropdown-group-header {
+  padding: 0 10px;
+  margin: 5px 0;
+}
+
+.group-toggle-btn {
+  padding: 2px 5px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.group-toggle-btn:hover {
+  background-color: #f5f7fa;
+  color: #409eff;
+}
+
+/* 下拉菜单项样式调整 */
+.el-dropdown-menu__item {
+  font-size: 13px;
+  padding: 5px 15px;
+  line-height: 1.5;
 }
 </style>
